@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c770f2a68c60843cea7a0f52242c8643, type: 3}
+  m_Name: GameSettings_0
+  m_EditorClassIdentifier: 
+  totalRounds: 3
+  clicksPerRound: 3
+  possibleModifiers:
+  - operation: 0
+    value: 50
+    displayText: +50
+  - operation: 0
+    value: 10
+    displayText: +10
+  - operation: 1
+    value: 20
+    displayText: -20
+  - operation: 2
+    value: 2
+    displayText: x2
+  - operation: 2
+    value: 0.5
+    displayText: -2x
+  - operation: 0
+    value: 0
+    displayText: 
+  - operation: 0
+    value: 30
+    displayText: +30
