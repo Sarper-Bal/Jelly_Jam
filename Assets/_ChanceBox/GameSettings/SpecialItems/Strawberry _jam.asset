@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: caddd2fd65c044feca51816129cd7710, type: 3}
+  m_Name: Strawberry _jam
+  m_EditorClassIdentifier: 
+  itemName: Strawberry
+  itemIcon: {fileID: 21300000, guid: 6506ad47ed3b04d64bd9f75fba2d519e, type: 3}
+  itemDescription: "Bir sonraki turda +1 kutu a\xE7ma hakk\u0131 kazand\u0131r\u0131r"
+  type: 0
+  requiredStack: 3

@@ -1,18 +1,21 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using DG.Tweening; // Animasyon için DoTween eklendi
 
 [RequireComponent(typeof(Button))]
 public class ChanceBox_Box : MonoBehaviour
 {
     public event System.Action<ChanceBox_Box> OnBoxClicked;
 
+    [Header("Component References")]
     [SerializeField] private Button boxButton;
-    [SerializeField] private TextMeshProUGUI modifierText;
     [SerializeField] private GameObject coverObject;
 
-    private BoxModifier _assignedModifier;
+    [Header("Content Display")]
+    [SerializeField] private TextMeshProUGUI modifierText;
+    [SerializeField] private Image itemIconImage; // --- YENİ ALAN: Eşya ikonunu gösterecek Image component'i.
+
+    private BoxContent _assignedContent; // Artık BoxModifier yerine BoxContent tutuyoruz.
     private bool _isClicked = false;
 
     private void Awake()
@@ -20,37 +23,34 @@ public class ChanceBox_Box : MonoBehaviour
         boxButton.onClick.AddListener(HandleClick);
     }
 
-    public bool GetIsClicked()
+    public void Setup(BoxContent content)
     {
-        return _isClicked;
+        _assignedContent = content;
+        ResetVisuals(); // Görselleri başlangıç durumuna ayarla
     }
 
-
-    public void Setup(BoxModifier modifier)
-    {
-        _assignedModifier = modifier;
-        modifierText.text = _assignedModifier.displayText;
-
-        // Kutuyu başlangıç durumuna sıfırla ve metni gizle
-        ResetVisuals();
-    }
-
-    /// <summary>
-    /// Kutunun içeriğini gösterir (kapağı kaldırır, metni görünür yapar).
-    /// Animasyon yöneticisi tarafından çağrılır.
-    /// </summary>
-    public void RevealContent() // Metodun adı 'Reveal' yerine 'RevealContent' olarak değiştirildi karışıklığı önlemek için.
+    public void RevealContent()
     {
         if (coverObject != null)
         {
             coverObject.SetActive(false);
         }
-        modifierText.gameObject.SetActive(true);
+
+        // İçeriğin türüne göre ya metni ya da ikonu göster.
+        if (_assignedContent.contentType == ContentType.Modifier)
+        {
+            modifierText.text = _assignedContent.modifier.displayText;
+            modifierText.gameObject.SetActive(true);
+            itemIconImage.gameObject.SetActive(false);
+        }
+        else if (_assignedContent.contentType == ContentType.SpecialItem)
+        {
+            itemIconImage.sprite = _assignedContent.specialItem.itemIcon;
+            modifierText.gameObject.SetActive(false);
+            itemIconImage.gameObject.SetActive(true);
+        }
     }
 
-    /// <summary>
-    /// Kutunun görsellerini başlangıç durumuna döndürür (kapak açık, metin gizli, tıklanabilir).
-    /// </summary>
     public void ResetVisuals()
     {
         _isClicked = false;
@@ -58,27 +58,27 @@ public class ChanceBox_Box : MonoBehaviour
 
         if (coverObject != null)
         {
-            coverObject.SetActive(true); // Kapak açık
+            coverObject.SetActive(true);
         }
-        modifierText.gameObject.SetActive(false); // Metin gizli
+        modifierText.gameObject.SetActive(false);
+        itemIconImage.gameObject.SetActive(false); // Başlangıçta ikonu da gizle.
     }
 
     private void HandleClick()
     {
-        if (_isClicked || !boxButton.interactable)
-        {
-            return;
-        }
-
+        if (_isClicked || !boxButton.interactable) return;
         _isClicked = true;
-        // Animasyon oynarken tekrar tıklanmasını engellemek için geçici olarak kapat
         boxButton.interactable = false;
-
         OnBoxClicked?.Invoke(this);
     }
 
-    public BoxModifier GetModifier()
+    public BoxContent GetContent() // Metodun adı ve dönüş türü değişti.
     {
-        return _assignedModifier;
+        return _assignedContent;
+    }
+
+    public bool GetIsClicked()
+    {
+        return _isClicked;
     }
 }

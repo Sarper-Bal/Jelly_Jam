@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq; // LINQ kütüphanesini rastgele seçim için ekliyoruz.
 
 public class ChanceBox_GridController : MonoBehaviour
 {
@@ -7,8 +8,6 @@ public class ChanceBox_GridController : MonoBehaviour
 
     [SerializeField] private ChanceBox_Settings settings;
     [SerializeField] private List<ChanceBox_Box> boxes;
-
-    private List<BoxModifier> _roundModifiers = new List<BoxModifier>();
 
     private void Awake()
     {
@@ -20,23 +19,46 @@ public class ChanceBox_GridController : MonoBehaviour
 
     public void SetupNewRound()
     {
-        // GÜNCELLEME: Yeni tur başlamadan önce tüm kutuları sıfırla.
         foreach (var box in boxes)
         {
             box.ResetVisuals();
         }
 
-        _roundModifiers = new List<BoxModifier>(settings.possibleModifiers);
-        Shuffle(_roundModifiers);
+        // Tur için kullanılacak modifier'ları hazırla
+        List<BoxModifier> availableModifiers = new List<BoxModifier>(settings.possibleModifiers);
+        Shuffle(availableModifiers);
 
+        // Her bir kutu için içerik belirle
         for (int i = 0; i < boxes.Count; i++)
         {
-            if (i >= _roundModifiers.Count)
+            BoxContent newContent = new BoxContent();
+
+            // Zar at: Özel eşya mı, modifier mı?
+            if (settings.possibleItems.Any() && Random.value < settings.itemDropChance)
             {
-                Debug.LogError("Yeterli 'possibleModifier' yok! Kutulara atanacak veri bulunamadı.");
-                return;
+                // Özel Eşya seçildi
+                newContent.contentType = ContentType.SpecialItem;
+                // Rastgele bir özel eşya seç
+                newContent.specialItem = settings.possibleItems[Random.Range(0, settings.possibleItems.Count)];
             }
-            boxes[i].Setup(_roundModifiers[i]);
+            else
+            {
+                // Modifier seçildi
+                newContent.contentType = ContentType.Modifier;
+                // Listeden sıradaki modifier'ı al
+                if (i < availableModifiers.Count)
+                {
+                    newContent.modifier = availableModifiers[i];
+                }
+                else
+                {
+                    // Eğer kutu sayısı modifier sayısından fazlaysa, en baştan rastgele bir tane daha ata
+                    newContent.modifier = availableModifiers[Random.Range(0, availableModifiers.Count)];
+                }
+            }
+
+            // Kutuyu bu yeni içerikle kur
+            boxes[i].Setup(newContent);
         }
     }
 
@@ -53,21 +75,16 @@ public class ChanceBox_GridController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Tüm kutuların tıklanabilirliğini açar. GameManager tarafından çağrılacak.
-    /// </summary>
-    public void EnableAllBoxes() // Yeni metod
+    public void EnableAllBoxes()
     {
         foreach (var box in boxes)
         {
-            // Sadece tıklanmamış kutuları aç (tıklananlar zaten disabled kalmalı)
-            if (!box.gameObject.GetComponent<ChanceBox_Box>().GetIsClicked()) // GetIsClicked eklenmeli
+            if (!box.GetIsClicked())
             {
                 box.GetComponent<UnityEngine.UI.Button>().interactable = true;
             }
         }
     }
-    // _isClicked değeri için public bir getter eklemeliyiz ChanceBox_Box script'ine.
 
     private void Shuffle<T>(List<T> list)
     {

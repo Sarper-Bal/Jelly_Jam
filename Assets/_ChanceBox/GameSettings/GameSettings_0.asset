@@ -36,3 +36,6 @@ MonoBehaviour:
   - operation: 0
     value: 30
     displayText: +30
+  possibleItems:
+  - {fileID: 11400000, guid: ec8c6135f5b5b4b9b8ebc824bc81e023, type: 2}
+  itemDropChance: 0.208
