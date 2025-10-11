@@ -1,6 +1,6 @@
 using UnityEngine;
 using System.Collections;
-using System.Collections.Generic; // Dictionary için gerekli
+using System.Collections.Generic;
 using TMPro;
 
 public class ChanceBox_GameManager : MonoBehaviour
@@ -17,11 +17,22 @@ public class ChanceBox_GameManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI roundText;
     [SerializeField] private TextMeshProUGUI feedbackText;
     [SerializeField] private GameObject miniGameCanvas;
+    [SerializeField] private GameObject shieldStatusIcon; // Kalkan UI ikonu
+    [SerializeField] private TextMeshProUGUI keyCounterText; // Anahtar sayacı metni
 
-    // --- YENİ ALANLAR: Envanter ve Oyun Durumu ---
+    [Header("Special Item Definitions")]
+    [Tooltip("Hangi item'ın 'Yıldız' olduğunu buraya sürükleyin.")]
+    [SerializeField] private SpecialItem_SO starItemDefinition;
+    [Tooltip("Hangi item'ın 'Kalkan' olduğunu buraya sürükleyin.")]
+    [SerializeField] private SpecialItem_SO shieldItemDefinition;
+    [Tooltip("Hangi item'ın 'Anahtar' olduğunu buraya sürükleyin.")]
+    [SerializeField] private SpecialItem_SO keyItemDefinition;
+
+    // --- Oyun Durumu Değişkenleri ---
     private Dictionary<SpecialItem_SO, int> _collectedItems = new Dictionary<SpecialItem_SO, int>();
     private int _extraClicksNextRound = 0;
-    // ---------------------------------------------
+    private bool _isShieldActive = false;
+    private bool _hasBonusChestKey = false;
 
     private float _currentCoins;
     private int _currentRound;
@@ -39,9 +50,12 @@ public class ChanceBox_GameManager : MonoBehaviour
         _currentRound = 0;
         miniGameCanvas.SetActive(true);
 
-        // Envanteri ve bonusları temizle
+        // Tüm durumları sıfırla
         _collectedItems.Clear();
         _extraClicksNextRound = 0;
+        _isShieldActive = false;
+        _hasBonusChestKey = false;
+        UpdateUI();
 
         StartCoroutine(StartNextRoundWithDelay());
     }
@@ -51,7 +65,6 @@ public class ChanceBox_GameManager : MonoBehaviour
         animator.PlayRevealAnimation(selectedBox);
         _clicksThisRound++;
 
-        // --- GÜNCELLEME: Artık GetContent() kullanıyoruz ---
         BoxContent content = selectedBox.GetContent();
 
         if (content.contentType == ContentType.Modifier)
@@ -62,9 +75,7 @@ public class ChanceBox_GameManager : MonoBehaviour
         {
             ProcessSpecialItem(content.specialItem);
         }
-        // ----------------------------------------------------
 
-        // Tıklama hakkı bitti mi? (Ekstra hakları da hesaba kat)
         int clicksAllowedThisRound = settings.clicksPerRound + _extraClicksNextRound;
         if (_clicksThisRound >= clicksAllowedThisRound)
         {
@@ -75,6 +86,16 @@ public class ChanceBox_GameManager : MonoBehaviour
 
     private void ProcessModifier(BoxModifier modifier)
     {
+        // Kalkan aktif mi ve negatif bir etki mi geldi?
+        if (_isShieldActive && (modifier.operation == ModifierOperation.Subtract || (modifier.operation == ModifierOperation.Multiply && modifier.value < 1.0f)))
+        {
+            _isShieldActive = false;
+            UpdateUI();
+            animator.ShowFeedbackText(feedbackText, "KALKAN KORUDU!");
+            Debug.Log("Kalkan negatif etkiyi engelledi!");
+            return; // Hesaplamanın geri kalanını atla
+        }
+
         float previousCoins = _currentCoins;
         switch (modifier.operation)
         {
@@ -89,24 +110,14 @@ public class ChanceBox_GameManager : MonoBehaviour
     private void ProcessSpecialItem(SpecialItem_SO item)
     {
         Debug.Log($"{item.itemName} adlı özel eşya bulundu!");
+        if (!_collectedItems.ContainsKey(item)) _collectedItems.Add(item, 0);
+        _collectedItems[item]++;
+        UpdateUI();
 
-        // Envantere ekle
-        if (_collectedItems.ContainsKey(item))
+        if ((item.type == ItemType.Collectible && _collectedItems[item] >= item.requiredStack) || item.type == ItemType.InstantEffect)
         {
-            _collectedItems[item]++;
-        }
-        else
-        {
-            _collectedItems.Add(item, 1);
-        }
-
-        // Eşya efekti tetiklendi mi diye kontrol et
-        if (item.type == ItemType.Collectible && _collectedItems[item] >= item.requiredStack)
-        {
-            // Efekti tetikle!
             TriggerItemEffect(item);
-            // Stack'i sıfırla
-            _collectedItems[item] -= item.requiredStack;
+            if (item.type == ItemType.Collectible) _collectedItems[item] -= item.requiredStack;
         }
     }
 
@@ -115,45 +126,68 @@ public class ChanceBox_GameManager : MonoBehaviour
         Debug.Log($"{item.itemName} efekti tetiklendi!");
         animator.ShowFeedbackText(feedbackText, $"{item.itemName} ETKİSİ!");
 
-        // --- YILDIZ EFEKTİ BURADA TANIMLANIYOR ---
-        if (item.itemName == "Yıldız") // İsme göre kontrol ediyoruz.
+        if (item == starItemDefinition)
         {
             _extraClicksNextRound++;
         }
-        // Gelecekteki diğer eşyalar için buraya "else if" eklenebilir.
+        else if (item == shieldItemDefinition)
+        {
+            _isShieldActive = true;
+        }
+        else if (item == keyItemDefinition)
+        {
+            _hasBonusChestKey = true;
+        }
+        UpdateUI();
+    }
+
+    private void UpdateUI()
+    {
+        // Kalkan ikonunu güncelle
+        if (shieldStatusIcon != null) shieldStatusIcon.SetActive(_isShieldActive);
+
+        // Anahtar sayacını güncelle
+        if (keyCounterText != null && keyItemDefinition != null)
+        {
+            int keyCount = _collectedItems.ContainsKey(keyItemDefinition) ? _collectedItems[keyItemDefinition] : 0;
+            keyCounterText.text = $"Anahtar: {keyCount}/{keyItemDefinition.requiredStack}";
+        }
+
+        // Tur metnini güncelle (ekstra hakları da göster)
+        int clicksAllowedThisRound = settings.clicksPerRound + _extraClicksNextRound;
+        roundText.text = $"TUR {_currentRound}/{settings.totalRounds} | HAK: {clicksAllowedThisRound}";
     }
 
     private IEnumerator StartNextRoundWithDelay()
     {
         yield return new WaitForSeconds(1.5f);
         _currentRound++;
+        UpdateUI(); // Tur metnini güncellemek için
 
         if (_currentRound > settings.totalRounds)
         {
             EndMiniGame();
-            yield break; // Coroutine'i burada durdur.
+            yield break;
         }
 
-        // Yeni tur başlıyor
-        int clicksAllowedThisRound = settings.clicksPerRound + _extraClicksNextRound;
         _clicksThisRound = 0;
-
-        roundText.text = $"TUR {_currentRound}/{settings.totalRounds} (+{_extraClicksNextRound} HAK)";
         animator.ShowFeedbackText(feedbackText, $"TUR {_currentRound}");
-
-        // Yeni tur için kutuları hazırla
         gridController.SetupNewRound();
-
-        // Bir sonraki tur için ekstra hakları sıfırla (eğer tek kullanımlıksa)
-        // Eğer biriksin istiyorsak bu satırı sileriz. Şimdilik sıfırlayalım.
         _extraClicksNextRound = 0;
     }
 
     private void EndMiniGame()
     {
-        animator.ShowFeedbackText(feedbackText, "OYUN BİTTİ!");
+        // Anahtar varsa bonusu uygula
+        if (_hasBonusChestKey)
+        {
+            float bonusAmount = 500; // Örnek bonus miktar
+            animator.ShowFeedbackText(feedbackText, $"BONUS SANDIK! +{bonusAmount}");
+            ProcessModifier(new BoxModifier { operation = ModifierOperation.Add, value = bonusAmount });
+        }
+
         OnMiniGameFinished?.Invoke(_currentCoins);
-        StartCoroutine(DeactivateCanvasAfterDelay(2.0f));
+        StartCoroutine(DeactivateCanvasAfterDelay(2.5f));
     }
 
     private IEnumerator DeactivateCanvasAfterDelay(float delay)

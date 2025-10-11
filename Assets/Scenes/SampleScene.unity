@@ -3014,6 +3014,11 @@ MonoBehaviour:
   roundText: {fileID: 2065803885}
   feedbackText: {fileID: 21291796}
   miniGameCanvas: {fileID: 1377032294}
+  shieldStatusIcon: {fileID: 0}
+  keyCounterText: {fileID: 0}
+  starItemDefinition: {fileID: 0}
+  shieldItemDefinition: {fileID: 0}
+  keyItemDefinition: {fileID: 0}
 --- !u!1 &1278841446
 GameObject:
   m_ObjectHideFlags: 0
@@ -3106,7 +3111,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1377032295
 RectTransform:
   m_ObjectHideFlags: 0
